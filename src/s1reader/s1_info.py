@@ -112,6 +112,11 @@ def _bounds_from_preview(safe_path: Union[Path, str]) -> list[float]:
     point_str = list(elem.text for elem in root.iter("coordinates"))[0]
     coords = [p.split(",") for p in point_str.split()]
     lons, lats = zip(*[(float(lon), float(lat)) for lon, lat in coords])
+
+    if max(lons) - min(lons) > 180.0:
+        # Antimeridian crossing detected
+        lons = [lon + (lon < 0) * 360.0 for lon in lons]
+
     return [min(lons), min(lats), max(lons), max(lats)]
 
 
