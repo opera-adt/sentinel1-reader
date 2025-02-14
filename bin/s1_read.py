@@ -4,18 +4,18 @@ import sys
 import s1reader
 
 if __name__ == "__main__":
-    '''testing script that prints burst info and write SLC to file'''
+    """testing script that prints burst info and write SLC to file"""
     # TODO replace with argparse
     path = sys.argv[1]
     if not os.path.exists(path):
         raise FileNotFoundError(f"{path} does not exist")
 
     i_subswath = int(sys.argv[2])
-    if i_subswath < 1  or i_subswath > 3:
+    if i_subswath < 1 or i_subswath > 3:
         raise ValueError("i_subswath not <1 or >3")
 
     pol = sys.argv[3]
-    pols = ['vv', 'vh', 'hh', 'hv']
+    pols = ["vv", "vh", "hh", "hv"]
     if pol not in pols:
         raise ValueError("polarization not in {pols}")
 
@@ -31,8 +31,8 @@ if __name__ == "__main__":
         print(burst.burst_id, burst.center)
 
     # write to ENVI (default)
-    burst.slc_to_file('burst.slc')
+    burst.slc_to_file("burst.slc")
     # write to geotiff
-    burst.slc_to_file('burst.tif', 'GTiff')
+    burst.slc_to_file("burst.tif", "GTiff")
     # write to VRT
-    burst.slc_to_file('burst.vrt', 'VRT')
+    burst.slc_to_file("burst.vrt", "VRT")

@@ -1,4 +1,5 @@
 """Extract the burst ID information from a Sentinel-1 SLC product."""
+
 from __future__ import annotations
 
 import argparse

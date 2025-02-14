@@ -13,7 +13,7 @@ Create ISCE3-compatible Sentinel1 burst class given:
 
 Creates a Burst ID based on [ESA's published burst ID maps](https://sentinel.esa.int/web/sentinel/-/publication-of-brust-id-maps-for-copernicus-sentinel-1/1.1).
 
-🚨 This toolbox is still in **pre-alpha** stage and undergoing **rapid development**. 🚨 
+🚨 This toolbox is still in **pre-alpha** stage and undergoing **rapid development**. 🚨
 
 ## Install
 

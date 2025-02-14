@@ -1,0 +1,3 @@
+# .git-blame-ignore-revs
+# Run ruff-format on codebase
+b3f11b8ab7814094a433ff23852bd1e52eb8bbbd

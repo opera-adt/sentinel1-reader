@@ -1,0 +1,35 @@
+ci:
+  autofix_prs: true
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: "v5.0.0"
+    hooks:
+      # https://github.com/pre-commit/pre-commit-hooks/issues/718
+      # - id: check-added-large-files  # Fails with git v1.8.3
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: file-contents-sorter
+        files: (requirements.txt)$
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      - id: ruff-format
+      # TODO: More work is needed to add other linters
+      # - id: ruff
+      #   args: [--fix, --exit-non-zero-on-fix]
+      #   types_or: [python, jupyter]
+
+  # We should also work toward adding the mypy checks
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: "v1.15.0"
+  #   hooks:
+  #     - id: mypy

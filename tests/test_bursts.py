@@ -16,7 +16,8 @@ def test_burst(bursts):
         [-10.66584, 2126.559, -15965500.0],
         [-11.98844, 13693.94, -20996410.0],
         [3.296118, -44014.56, 29321840.0],
-        [-5.65537, 8260.13, -21226210.0]]
+        [-5.65537, 8260.13, -21226210.0],
+    ]
 
     az_fm_rate_poly1d_coeffs = [
         [-2056.065941779171, 353463.4449453847, -54169735.41467991],
@@ -27,10 +28,11 @@ def test_burst(bursts):
         [-2056.481997647131, 353420.3529224118, -54153675.66869747],
         [-2056.555248889294, 353410.1388230529, -54149584.97851501],
         [-2056.633884304171, 353399.9756644769, -54144676.15045655],
-        [-2056.701472691132, 353389.9614836443, -54143009.57327797]]
+        [-2056.701472691132, 353389.9614836443, -54143009.57327797],
+    ]
 
     for i, burst in enumerate(bursts):
-        expected_burst_id = f't071_{151199 + i}_iw3'
+        expected_burst_id = f"t071_{151199 + i}_iw3"
         assert burst.burst_id == expected_burst_id
         assert burst.i_burst == i
         assert burst.abs_orbit_number == 32518
@@ -50,10 +52,10 @@ def test_burst(bursts):
         assert burst.shape == (1515, 24492)
         assert burst.range_bandwidth == 42789918.40322842
 
-        assert burst.polarization == 'VV'
-        assert burst.platform_id == 'S1A'
+        assert burst.polarization == "VV"
+        assert burst.platform_id == "S1A"
 
-        assert burst.range_window_type == 'Hamming'
+        assert burst.range_window_type == "Hamming"
         assert burst.range_window_coefficient == 0.75
         assert burst.rank == 10
         assert burst.prf_raw_data == 1685.817302492702
@@ -72,8 +74,10 @@ def test_burst(bursts):
         # compare doppler poly1d and lut2d
         r0 = burst.starting_range + 0.5 * burst.width * burst.range_pixel_spacing
         t0 = isce3.core.DateTime(burst.sensing_mid) - burst.orbit.reference_epoch
-        assert np.isclose(burst.doppler.lut2d.eval(t0.total_seconds(), r0),
-                          burst.doppler.poly1d.eval(r0))
+        assert np.isclose(
+            burst.doppler.lut2d.eval(t0.total_seconds(), r0),
+            burst.doppler.poly1d.eval(r0),
+        )
 
         assert burst.azimuth_fm_rate.order == 2
         assert burst.azimuth_fm_rate.mean == 901673.89084624
@@ -91,7 +95,7 @@ def test_as_isce3_radargrid(bursts):
         assert dt == grid.ref_epoch
         assert grid.prf == 1 / burst.azimuth_time_interval
         assert grid.range_pixel_spacing == burst.range_pixel_spacing
-        assert str(grid.lookside) == 'LookSide.Right'
+        assert str(grid.lookside) == "LookSide.Right"
         assert grid.wavelength == burst.wavelength
 
 
@@ -104,7 +108,6 @@ def test_as_isce3_radargrid_step_change(bursts):
     assert grid.width == burst.width
     assert grid.length == burst.length
     assert grid.prf == 1 / az_step
-
 
     rg_step *= 2
     grid = burst.as_isce3_radargrid(rg_step=rg_step)

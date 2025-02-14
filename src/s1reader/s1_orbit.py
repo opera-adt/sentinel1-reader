@@ -20,16 +20,16 @@ PADDING_SHORT = 60
 # Temporal margin to apply to the start time of a frame
 #  to make sure that the ascending node crossing is
 #    included when choosing the orbit file
-padding_short = datetime.timedelta(seconds = PADDING_SHORT)
+padding_short = datetime.timedelta(seconds=PADDING_SHORT)
 margin_start_time = datetime.timedelta(seconds=T_ORBIT + PADDING_SHORT)
 
 # Scihub guest credential
-scihub_user = 'gnssguest'
-scihub_password = 'gnssguest'
+scihub_user = "gnssguest"
+scihub_password = "gnssguest"
 
 
-def retrieve_orbit_file(safe_file: str, orbit_dir: str, concatenate: bool=False):
-    '''
+def retrieve_orbit_file(safe_file: str, orbit_dir: str, concatenate: bool = False):
+    """
     Download or concatenate orbits for S1-A/B SAFE "safe_file"
     If no RESORB orbit file covers the time range [start_time - margin_start_time, end_time], then
     download two RESORB files to cover the time range, and
@@ -49,33 +49,37 @@ def retrieve_orbit_file(safe_file: str, orbit_dir: str, concatenate: bool=False)
     -------
     orbit_file : str
         Path to the orbit file.
-    '''
+    """
 
     # Create output directory & check internet connection
     os.makedirs(orbit_dir, exist_ok=True)
     _check_internet_connection()
 
     # Parse info from SAFE file name
-    mission_id, _, sensing_start_time, sensing_end_time, _ = _parse_safe_filename(safe_file)
+    mission_id, _, sensing_start_time, sensing_end_time, _ = _parse_safe_filename(
+        safe_file
+    )
 
     # Apply margin to the start time
     search_start_time = sensing_start_time - margin_start_time
     search_end_time = sensing_end_time + padding_short
 
     # Find precise orbit first
-    orbit_dict = _get_orbit_dict(mission_id, search_start_time,
-                                search_end_time, 'AUX_POEORB')
+    orbit_dict = _get_orbit_dict(
+        mission_id, search_start_time, search_end_time, "AUX_POEORB"
+    )
 
     # If orbit dict is empty, find restituted orbits
     if orbit_dict is None:
-        orbit_dict = _get_orbit_dict(mission_id, search_start_time,
-                                    search_end_time, 'AUX_RESORB')
+        orbit_dict = _get_orbit_dict(
+            mission_id, search_start_time, search_end_time, "AUX_RESORB"
+        )
 
     # Download orbit file
     if orbit_dict is not None:
         orbit_file = os.path.join(orbit_dir, f"{orbit_dict['orbit_name']}.EOF")
         if not os.path.exists(orbit_file):
-            _download_orbit_file(orbit_dict['orbit_url'], orbit_file)
+            _download_orbit_file(orbit_dict["orbit_url"], orbit_file)
 
         return orbit_file
 
@@ -90,21 +94,25 @@ def retrieve_orbit_file(safe_file: str, orbit_dir: str, concatenate: bool=False)
     # Time shifting between the subsequent RESORB  (H:M:S): 1:38:44
     # T_orb  (H:M:S):                                       1:38:44.57
 
-    print('Attempting to download RESORB files.')
-    resorb_dict_earlier = _get_orbit_dict(mission_id,
-                                        search_start_time,
-                                        search_start_time + 2 * padding_short,
-                                        'AUX_RESORB')
+    print("Attempting to download RESORB files.")
+    resorb_dict_earlier = _get_orbit_dict(
+        mission_id,
+        search_start_time,
+        search_start_time + 2 * padding_short,
+        "AUX_RESORB",
+    )
 
-    resorb_dict_later = _get_orbit_dict(mission_id,
-                                       sensing_start_time - padding_short,
-                                       sensing_end_time + padding_short,
-                                       'AUX_RESORB')
+    resorb_dict_later = _get_orbit_dict(
+        mission_id,
+        sensing_start_time - padding_short,
+        sensing_end_time + padding_short,
+        "AUX_RESORB",
+    )
 
     resorb_dict_list = [resorb_dict_earlier, resorb_dict_later]
 
     if not all(resorb_dict_list):
-        warnings.warn('Cannot find RESORB pair that covers the timeframe in the query')
+        warnings.warn("Cannot find RESORB pair that covers the timeframe in the query")
         return
 
     # Either concatenate the orbit, or return the RESORB pair
@@ -112,7 +120,7 @@ def retrieve_orbit_file(safe_file: str, orbit_dir: str, concatenate: bool=False)
     for resorb_dict in resorb_dict_list:
         resorb_file = os.path.join(orbit_dir, f"{resorb_dict['orbit_name']}.EOF")
         if not os.path.exists(resorb_file):
-            _download_orbit_file(orbit_dir, resorb_dict['orbit_url'])
+            _download_orbit_file(orbit_dir, resorb_dict["orbit_url"])
         resorb_file_list.append(resorb_file)
 
     # concatenate the RESORB xml file.
@@ -131,26 +139,27 @@ def retrieve_orbit_file(safe_file: str, orbit_dir: str, concatenate: bool=False)
     # we concatenate the two orbits using CASE 1 approach which is
     # adding earlier RESORB to latter (i.e. CASE 1 above)
     if concatenate:
-        concat_resorb_file = combine_xml_orbit_elements(resorb_file_list[1],
-                                                        resorb_file_list[0])
+        concat_resorb_file = combine_xml_orbit_elements(
+            resorb_file_list[1], resorb_file_list[0]
+        )
         return concat_resorb_file
 
     return resorb_file_list
 
 
 def _check_internet_connection():
-    '''
+    """
     Check connection availability
-    '''
+    """
     url = "http://google.com"
     try:
         requests.get(url, timeout=10)
     except (requests.ConnectionError, requests.Timeout) as exception:
-        raise ConnectionError(f'Unable to reach {url}: {exception}')
+        raise ConnectionError(f"Unable to reach {url}: {exception}")
 
 
 def _parse_safe_filename(safe_filename):
-    '''
+    """
     Extract info from S1-A/B SAFE filename
     SAFE filename structure:
     S1A_IW_SLC__1SDV_20150224T114043_20150224T114111_004764_005E86_AD02.SAFE
@@ -176,22 +185,20 @@ def _parse_safe_filename(safe_filename):
     returns
     ['S1A', 'IW', datetime.datetime(2015, 2, 24, 11, 40, 43),\
     datetime.datetime(2015, 2, 24, 11, 41, 11), 4764]
-    '''
+    """
 
     safe_name = os.path.basename(safe_filename)
     mission_id = safe_name[:3]
     sensor_mode = safe_name[4:6]
-    start_datetime = datetime.datetime.strptime(safe_name[17:32],
-                                                FMT)
-    end_datetime = datetime.datetime.strptime(safe_name[33:48],
-                                              FMT)
+    start_datetime = datetime.datetime.strptime(safe_name[17:32], FMT)
+    end_datetime = datetime.datetime.strptime(safe_name[33:48], FMT)
     abs_orb_num = int(safe_name[49:55])
 
     return [mission_id, sensor_mode, start_datetime, end_datetime, abs_orb_num]
 
 
 def _get_file_name_tokens(zip_path: str) -> [str, list[datetime.datetime]]:
-    '''Extract swath platform ID and start/stop times from SAFE zip file path.
+    """Extract swath platform ID and start/stop times from SAFE zip file path.
 
     Parameters
     ----------
@@ -205,13 +212,13 @@ def _get_file_name_tokens(zip_path: str) -> [str, list[datetime.datetime]]:
     mission_id: ('S1A', 'S1B')
     t_swath_start_stop: list[datetime.datetime]
         Swath start/stop times
-    '''
+    """
     mission_id, _, start_time, end_time, _ = _parse_safe_filename(zip_path)
     return mission_id, [start_time, end_time]
 
 
 def _get_orbit_dict(mission_id, start_time, end_time, orbit_type):
-    '''
+    """
     Query Copernicus GNSS API to find latest orbit file
     Parameters
     ----------
@@ -228,47 +235,55 @@ def _get_orbit_dict(mission_id, start_time, end_time, orbit_type):
     -------
     orbit_dict: dict
         Python dictionary with [orbit_name, orbit_type, download_url]
-    '''
+    """
     # Required for orbit download
-    scihub_url = 'https://scihub.copernicus.eu/gnss/odata/v1/Products'
+    scihub_url = "https://scihub.copernicus.eu/gnss/odata/v1/Products"
     # Namespaces of the XML file returned by the S1 query. Will they change it?
-    m_url = '{http://schemas.microsoft.com/ado/2007/08/dataservices/metadata}'
-    d_url = '{http://schemas.microsoft.com/ado/2007/08/dataservices}'
+    m_url = "{http://schemas.microsoft.com/ado/2007/08/dataservices/metadata}"
+    d_url = "{http://schemas.microsoft.com/ado/2007/08/dataservices}"
 
     # Check if correct orbit_type
-    if orbit_type not in ['AUX_POEORB', 'AUX_RESORB']:
-        err_msg = f'{orbit_type} not a valid orbit type'
+    if orbit_type not in ["AUX_POEORB", "AUX_RESORB"]:
+        err_msg = f"{orbit_type} not a valid orbit type"
         raise ValueError(err_msg)
 
-    new_start_time = start_time.strftime('%Y-%m-%dT%H:%M:%S')
-    new_end_time = end_time.strftime('%Y-%m-%dT%H:%M:%S')
-    query_string = f"startswith(Name,'{mission_id}') and substringof('{orbit_type}',Name) " \
-                   f"and ContentDate/Start lt datetime'{new_start_time}' and ContentDate/End gt datetime'{new_end_time}'"
-    query_params = {'$top': 1, '$orderby': 'ContentDate/Start asc',
-                    '$filter': query_string}
-    query_response = requests.get(url=scihub_url, params=query_params,
-                                  auth=(scihub_user, scihub_password))
+    new_start_time = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+    new_end_time = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+    query_string = (
+        f"startswith(Name,'{mission_id}') and substringof('{orbit_type}',Name) "
+        f"and ContentDate/Start lt datetime'{new_start_time}' and ContentDate/End gt datetime'{new_end_time}'"
+    )
+    query_params = {
+        "$top": 1,
+        "$orderby": "ContentDate/Start asc",
+        "$filter": query_string,
+    }
+    query_response = requests.get(
+        url=scihub_url, params=query_params, auth=(scihub_user, scihub_password)
+    )
     # Parse XML tree from query response
     xml_tree = ElementTree.fromstring(query_response.content)
     # Extract w3.org URL
-    w3_url = xml_tree.tag.split('feed')[0]
+    w3_url = xml_tree.tag.split("feed")[0]
 
     # Extract orbit's name, id, url
-    orbit_id = xml_tree.findtext(
-        f'.//{w3_url}entry/{m_url}properties/{d_url}Id')
+    orbit_id = xml_tree.findtext(f".//{w3_url}entry/{m_url}properties/{d_url}Id")
     orbit_url = f"{scihub_url}('{orbit_id}')/$value"
-    orbit_name = xml_tree.findtext(f'./{w3_url}entry/{w3_url}title')
+    orbit_name = xml_tree.findtext(f"./{w3_url}entry/{w3_url}title")
 
     if orbit_id is not None:
-        orbit_dict = {'orbit_name': orbit_name, 'orbit_type': orbit_type,
-                      'orbit_url': orbit_url}
+        orbit_dict = {
+            "orbit_name": orbit_name,
+            "orbit_type": orbit_type,
+            "orbit_url": orbit_url,
+        }
     else:
         orbit_dict = None
     return orbit_dict
 
 
 def _download_orbit_file(orbit_url: str, output_file: str) -> None:
-    '''
+    """
     Download S1-A/B orbits
     Parameters
     ----------
@@ -276,23 +291,23 @@ def _download_orbit_file(orbit_url: str, output_file: str) -> None:
         Remote url of orbit file to download
     output_file: str
         Path to save output file
-    '''
-    print('downloading URL:', orbit_url)
+    """
+    print("downloading URL:", orbit_url)
     response = requests.get(url=orbit_url, auth=(scihub_user, scihub_password))
     response.raise_for_status()
 
     # Save orbits
-    with open(output_file, 'wb') as f:
+    with open(output_file, "wb") as f:
         for chunk in response.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
                 f.flush()
 
 
-def get_orbit_file_from_dir(zip_path: str, orbit_dir: str,
-                            auto_download: bool=False,
-                            concat_resorb=False) -> str | list | None:
-    '''Get orbit state vector list for a given swath.
+def get_orbit_file_from_dir(
+    zip_path: str, orbit_dir: str, auto_download: bool = False, concat_resorb=False
+) -> str | list | None:
+    """Get orbit state vector list for a given swath.
 
     Parameters
     ----------
@@ -314,7 +329,7 @@ def get_orbit_file_from_dir(zip_path: str, orbit_dir: str,
     -------
     orbit_file : str
         Path to the orbit file.
-    '''
+    """
 
     # check the existence of input file path and directory
     if not os.path.exists(zip_path):
@@ -328,7 +343,7 @@ def get_orbit_file_from_dir(zip_path: str, orbit_dir: str,
             os.makedirs(orbit_dir, exist_ok=True)
 
     # search for orbit file
-    orbit_file_list = glob.glob(os.path.join(orbit_dir, 'S1*.EOF'))
+    orbit_file_list = glob.glob(os.path.join(orbit_dir, "S1*.EOF"))
 
     orbit_file = get_orbit_file_from_list(zip_path, orbit_file_list, concat_resorb)
 
@@ -336,8 +351,10 @@ def get_orbit_file_from_dir(zip_path: str, orbit_dir: str,
         return orbit_file
 
     if not auto_download:
-        msg = (f'No orbit file was found for {os.path.basename(zip_path)} '
-                f'from the directory provided: {orbit_dir}')
+        msg = (
+            f"No orbit file was found for {os.path.basename(zip_path)} "
+            f"from the directory provided: {orbit_dir}"
+        )
         warnings.warn(msg)
         return
 
@@ -346,10 +363,10 @@ def get_orbit_file_from_dir(zip_path: str, orbit_dir: str,
     return orbit_file
 
 
-def get_orbit_file_from_list(zip_path: str,
-                             orbit_file_list: list,
-                             concat_resorb: bool=False) -> str | list | None:
-    '''Get orbit file for a given S-1 swath from a list of files
+def get_orbit_file_from_list(
+    zip_path: str, orbit_file_list: list, concat_resorb: bool = False
+) -> str | list | None:
+    """Get orbit file for a given S-1 swath from a list of files
 
     Parameters
     ----------
@@ -367,7 +384,7 @@ def get_orbit_file_from_list(zip_path: str,
     -------
     orbit_file : str
         Path to the orbit file, or an empty string if no orbit file was found.
-    '''
+    """
     # check the existence of input file path and directory
     if not os.path.exists(zip_path):
         raise FileNotFoundError(f"{zip_path} does not exist")
@@ -377,16 +394,14 @@ def get_orbit_file_from_list(zip_path: str,
 
     # Apply temporal margin to the start time of the frame
     # 1st element: start time, 2nd element: end time
-    #t_swath_start_stop[0] = t_swath_start_stop[0] - margin_start_time
-    t_search_window = [t_swath_start_stop[0] - margin_start_time,
-                       t_swath_start_stop[1]]
+    # t_swath_start_stop[0] = t_swath_start_stop[0] - margin_start_time
+    t_search_window = [t_swath_start_stop[0] - margin_start_time, t_swath_start_stop[1]]
 
     # Sort the orbit files for reproducibility in the search result
-    orbit_file_list_sorted = sorted(orbit_file_list,
-                                    key=lambda x: os.path.basename(x))
+    orbit_file_list_sorted = sorted(orbit_file_list, key=lambda x: os.path.basename(x))
 
     # initiate output
-    orbit_file_final = ''
+    orbit_file_final = ""
 
     # search for orbit file
     for orbit_file in orbit_file_list_sorted:
@@ -397,7 +412,7 @@ def get_orbit_file_from_list(zip_path: str,
             continue
 
         # get file name and extract state vector start/end time strings
-        t_orbit_start, t_orbit_end = os.path.basename(orbit_file).split('_')[-2:]
+        t_orbit_start, t_orbit_end = os.path.basename(orbit_file).split("_")[-2:]
 
         # strip 'V' at start of start time string
         t_orbit_start = datetime.datetime.strptime(t_orbit_start[1:], FMT)
@@ -413,22 +428,24 @@ def get_orbit_file_from_list(zip_path: str,
             break
 
     if not orbit_file_final:
-        msg = ('No single orbit file was found in the file list provided. '
-               'Attempting to find set of RESORB files that covers the time period.')
+        msg = (
+            "No single orbit file was found in the file list provided. "
+            "Attempting to find set of RESORB files that covers the time period."
+        )
         warnings.warn(msg)
-        orbit_file_final = get_resorb_pair_from_list(zip_path,
-                                                     orbit_file_list_sorted,
-                                                     concat_resorb)
+        orbit_file_final = get_resorb_pair_from_list(
+            zip_path, orbit_file_list_sorted, concat_resorb
+        )
 
     if not orbit_file_final:
-        msg = ('No single orbit file was found in the file list provided.')
+        msg = "No single orbit file was found in the file list provided."
         warnings.warn(msg)
 
     return orbit_file_final
 
 
 def _covers_timeframe(orbit_file: str, t_start_stop_frame: list) -> bool:
-    '''
+    """
     Check if `orbit_file` covers `t_start_stop_frame`
 
     Parameters
@@ -442,9 +459,9 @@ def _covers_timeframe(orbit_file: str, t_start_stop_frame: list) -> bool:
     -------
     _: Bool
         `True` if the orbit file covers the time range; `False`, otherwise
-    '''
+    """
     # get file name and extract state vector start/end time strings
-    t_orbit_start, t_orbit_stop = os.path.basename(orbit_file).split('_')[-2:]
+    t_orbit_start, t_orbit_stop = os.path.basename(orbit_file).split("_")[-2:]
 
     # strip 'V' at start of start time string
     t_orbit_start = datetime.datetime.strptime(t_orbit_start[1:], FMT)
@@ -458,9 +475,10 @@ def _covers_timeframe(orbit_file: str, t_start_stop_frame: list) -> bool:
     return all(t_orbit_start < t < t_orbit_stop for t in t_start_stop_frame)
 
 
-def get_resorb_pair_from_list(zip_path: str, orbit_file_list: list,
-                               concatenate_resorb: bool=False) -> list | str | None:
-    '''
+def get_resorb_pair_from_list(
+    zip_path: str, orbit_file_list: list, concatenate_resorb: bool = False
+) -> list | str | None:
+    """
     Find if there are two RESORB files that cover [start - margin_start_time, end]
     If found, try to concatenate them when `concatenate_resorb` is `True`
 
@@ -482,7 +500,7 @@ def get_resorb_pair_from_list(zip_path: str, orbit_file_list: list,
     -------
     orbit_file : str
         Path to the orbit file, or `None` if no orbit file was found.
-    '''
+    """
     # check the existence of input file path and directory
     if not os.path.exists(zip_path):
         raise FileNotFoundError(f"{zip_path} does not exist")
@@ -491,8 +509,11 @@ def get_resorb_pair_from_list(zip_path: str, orbit_file_list: list,
     mission_id, t_swath_start_stop = _get_file_name_tokens(zip_path)
 
     # choose the RESORB file only
-    resorb_file_list = [orbit_file for orbit_file in orbit_file_list
-                        if '_RESORB_' in os.path.basename(orbit_file)]
+    resorb_file_list = [
+        orbit_file
+        for orbit_file in orbit_file_list
+        if "_RESORB_" in os.path.basename(orbit_file)
+    ]
     pad_1min = datetime.timedelta(seconds=PADDING_SHORT)
     resorb_filename_earlier = None
     resorb_filename_later = None
@@ -502,7 +523,7 @@ def get_resorb_pair_from_list(zip_path: str, orbit_file_list: list,
 
         # NOTE: the size of the search window was set to be small to avoid
         # the potential edge case like below:
-        #1111111111 1111111111| |
+        # 1111111111 1111111111| |
         #         |2222222222 2222222222
         #         |          3333333333 3333333333
         #         |           | |
@@ -516,21 +537,29 @@ def get_resorb_pair_from_list(zip_path: str, orbit_file_list: list,
 
         # 1. Try to find the orbit file that covers the sensing start-stop
         # with small padding (like 60 sec.)
-        t_swath_start_stop_safe = [t_swath_start_stop[0] - pad_1min,
-                                   t_swath_start_stop[1] + pad_1min]
-        if (_covers_timeframe(resorb_file, t_swath_start_stop_safe) and
-                resorb_filename_later is None):
-            print('Found RESOEB file covering the S1 SAFE frame.')
+        t_swath_start_stop_safe = [
+            t_swath_start_stop[0] - pad_1min,
+            t_swath_start_stop[1] + pad_1min,
+        ]
+        if (
+            _covers_timeframe(resorb_file, t_swath_start_stop_safe)
+            and resorb_filename_later is None
+        ):
+            print("Found RESOEB file covering the S1 SAFE frame.")
             resorb_filename_later = resorb_file
             continue
 
         # 2. Try to find the orbit file that covers
         # sensing time - T_orb with small padding
-        t_swath_start_stop_anx = [t_swath_start_stop[0] - margin_start_time,
-                                  t_swath_start_stop[0] - margin_start_time + 2*pad_1min]
-        if (_covers_timeframe(resorb_file, t_swath_start_stop_anx) and
-                resorb_filename_earlier is None):
-            print('Found RESOEB file covering ANX before sensing start')
+        t_swath_start_stop_anx = [
+            t_swath_start_stop[0] - margin_start_time,
+            t_swath_start_stop[0] - margin_start_time + 2 * pad_1min,
+        ]
+        if (
+            _covers_timeframe(resorb_file, t_swath_start_stop_anx)
+            and resorb_filename_earlier is None
+        ):
+            print("Found RESOEB file covering ANX before sensing start")
             resorb_filename_earlier = resorb_file
             continue
 
@@ -544,21 +573,22 @@ def get_resorb_pair_from_list(zip_path: str, orbit_file_list: list,
         if concatenate_resorb:
             # BE CAREFUL ABOUT THE ORDER HOW THEY ARE CONCATENATED.
             # See NOTE in retrieve_orbit_file() for detail.
-            concat_resorb_filename = combine_xml_orbit_elements(resorb_filename_later,
-                                                                resorb_filename_earlier)
-            print('RESORB Concatenation successful.')
+            concat_resorb_filename = combine_xml_orbit_elements(
+                resorb_filename_later, resorb_filename_earlier
+            )
+            print("RESORB Concatenation successful.")
             return concat_resorb_filename
         else:
             return [resorb_filename_earlier, resorb_filename_later]
 
-    print('Cannot find a single RESORB file that meets the time frame criteria.')
+    print("Cannot find a single RESORB file that meets the time frame criteria.")
     return
 
 
 def combine_xml_orbit_elements(file1: str, file2: str) -> str:
     """Combine the orbit elements from two XML files.
 
-    `file1` is the "base" of the output: All of the orbit state vectors from `file1` are used, 
+    `file1` is the "base" of the output: All of the orbit state vectors from `file1` are used,
     and only the OSVs from `file2` which do fall within the time range of `file1` are included.
 
     Create a new .EOF file with the combined results.
@@ -618,7 +648,7 @@ def combine_xml_orbit_elements(file1: str, file2: str) -> str:
 
 
 def merge_osv_list(list_of_osvs1, list_of_osvs2):
-    '''
+    """
     Merge the two orbit state vector list (OSV list) in orbit files into one.
     Apply sorting to make sure the OSVs are in chronological order
     `list_of_osvs1` will be the "base OSV list" while the OSVs in
@@ -636,7 +666,7 @@ def merge_osv_list(list_of_osvs1, list_of_osvs2):
     -------
         list_of_osvs1: ElementTree
             Merged OSV list
-    '''
+    """
     # Extract the UTC from the OSV of the first XML
     osv1_utc_list = [_get_utc_time_from_osv(osv1) for osv1 in list_of_osvs1]
 
@@ -660,8 +690,9 @@ def merge_osv_list(list_of_osvs1, list_of_osvs2):
     return list_of_osvs1
 
 
-def _generate_filename(file_base: str,
-                       new_start: datetime.datetime, new_stop: datetime.datetime) -> str:
+def _generate_filename(
+    file_base: str, new_start: datetime.datetime, new_stop: datetime.datetime
+) -> str:
     """Generate a new filename based on the two provided filenames.
 
     Parameters
@@ -684,12 +715,12 @@ def _generate_filename(file_base: str,
     # S1A_OPER_AUX_PREORB_OPOD_20200325T131800_V20200325T121452_20200325T184952
     fmt = "%Y%m%dT%H%M%S"
     new_start_stop_str = new_start.strftime(fmt) + "_" + new_stop.strftime(fmt)
-    new_product_name = product_name[:index_prefix + 2] + new_start_stop_str
+    new_product_name = product_name[: index_prefix + 2] + new_start_stop_str
     return str(file_base).replace(product_name, new_product_name) + ".EOF"
 
 
 def _sort_list_of_osv(list_of_osvs):
-    '''
+    """
     Sort the orbit state vectors (OSV) with respect to the UTC time
 
     Parameters
@@ -701,10 +732,12 @@ def _sort_list_of_osv(list_of_osvs):
     -------
     list_of_osvs: ET.ElementTree
         Sorted orbit state vectors (OSVs) with respect to UTC time
-    '''
+    """
     utc_osv_list = [_get_utc_time_from_osv(osv) for osv in list_of_osvs]
 
-    sorted_index_list = [index for index, _ in sorted(enumerate(utc_osv_list), key=lambda x: x[1])]
+    sorted_index_list = [
+        index for index, _ in sorted(enumerate(utc_osv_list), key=lambda x: x[1])
+    ]
 
     list_of_osvs_copy = list_of_osvs.__copy__()
 
@@ -714,8 +747,9 @@ def _sort_list_of_osv(list_of_osvs):
 
     return list_of_osvs
 
+
 def _get_utc_time_from_osv(osv):
-    '''
+    """
     Extract the UTC time from orbit state vector element in orbit file
 
     Parameters
@@ -727,7 +761,7 @@ def _get_utc_time_from_osv(osv):
     -------
     datetime_utc: datetime.datetime
         Orbit state vector's UTC time
-    '''
-    utc_osv_string = osv.find('UTC').text.replace('UTC=','')
+    """
+    utc_osv_string = osv.find("UTC").text.replace("UTC=", "")
     datetime_utc = datetime.datetime.fromisoformat(utc_osv_string)
     return datetime_utc
